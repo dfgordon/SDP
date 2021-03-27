@@ -3,6 +3,16 @@ SDP Overview
 
 *Super Dungeon Plot* (SDP) is an Apple II graphics package which provides both editing and deployment features intended for use in games.  It was developed by the author in the early to mid 1980's.  Its basic purposes are creating artwork, creating sprites, and providing machine language routines for rendering both.  The creation functions are all exposed by a menu in the HELLO program, which is run upon booting the disk.  The main SDP program is for generating artwork, and storing it efficiently.  SDP artwork makes use of simple line drawing, and paint brushes implemented as shape tables.  Sprites are implemented either as standard Apple II shapes, or as SDP fast shapes.
 
+Motivation
+----------
+
+This project is nostalgic. I developed *SDP* in my youth in order to develop artwork and graphics for a game I was creating, *Realm*.  Rediscovering the workings of *SDP* is a prerequisite for doing the same for *Realm*.
+
+Installation
+------------
+
+In order to install *SDP* on a vintage machine or emulator, the files in the repository have to be converted and copied to an Apple DOS 3.3 disk image, using a tool such as [CiderPress](https://a2ciderpress.com/).  The text versions of the binaries are for reading on a modern computer and should not be copied.  If running on an actual vintage computer, the disk image must then be copied to a real 5.25 inch floppy disc, or a modern replacement like the [Floppy Emu](https://www.bigmessowires.com/floppy-emu/).  Note that the directory of course has to be flattened, since DOS 3.3 has no hierarchical structure.
+
 Notation
 --------
 
@@ -82,7 +92,7 @@ When the interpreter encounters this code it prints `[4]BLOAD D[n],A$4000`, wher
 
 The SDP editor cannot work on squeezed files.  The workflow is to squeeze a graphic only when it is ready to be deployed.
 
-The intepreter pseudocode is as follows:
+Pseudocode for `SDP.INTRP` and `SDP.INTRP.E` is as follows:
 
   1. Clear screen - this is sometimes bypassed by calling 3 bytes beyond the start of the routine
   2. If no more graphics elements end, else:
