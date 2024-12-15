@@ -1,0 +1,18 @@
+{
+    "fimg_version": "2.1.0",
+    "file_system": "a2 dos",
+    "chunk_len": 256,
+    "eof": "",
+    "fs_type": "04",
+    "aux": "",
+    "access": "",
+    "accessed": "",
+    "created": "",
+    "modified": "",
+    "version": "",
+    "min_version": "",
+    "full_path": "DR",
+    "chunks": {
+        "0": "00035000BD004C608DBE346000000000000000000000A00838E50208260106002A289006E5029004B002650288D0ECB003650218260160A9008502A2084600900718A5036501850366036602CAD0EE60A9006000"
+    }
+}

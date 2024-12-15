@@ -1,6 +1,6 @@
 '''
 SDP Deploy to Disk Image.
-This script requires that a2kit be installed and in the path.
+Depends on a2kit v3.
 '''
 
 import subprocess
@@ -14,51 +14,40 @@ img_fmt = sys.argv[1]
 if img_fmt!='woz' and img_fmt!='do':
     print('format must be woz or do')
     exit(1)
-home_path = pathlib.Path.home()
 proj_path = pathlib.Path(sys.argv[2])
 distro_path = pathlib.Path(sys.argv[3])
 
-def a2kit_beg(args):
-    '''run a2kit and pipe the output'''
-    compl = subprocess.run(['a2kit']+args,capture_output=True,text=False)
+def a2kit(args,pipe_in=None):
+    compl = subprocess.run(['a2kit']+args,input=pipe_in,capture_output=True)
     if compl.returncode>0:
         print(compl.stderr)
         exit(1)
     return compl.stdout
-def a2kit_pipe(args,pipe_in):
-    '''run a2kit with piped input and output'''
-    compl = subprocess.run(['a2kit']+args,input=pipe_in,capture_output=True,text=False)
-    if compl.returncode>0:
-        print(compl.stderr)
-        exit(1)
-    return compl.stdout
-def a2kit_end(args,pipe_in):
-    '''run a2kit with piped input and terminate output'''
-    compl = subprocess.run(['a2kit']+args,input=pipe_in,text=False)
-    if compl.returncode>0:
-        print(compl.stderr)
-        exit(1)
-    return compl.stdout
+
+vers = tuple(map(int, a2kit(['-V']).decode('utf-8').split()[1].split('.')))
+if vers < (3,0,0):
+    print("script requires a2kit v3 or higher")
+    exit(1)
 
 bas_folder = proj_path
 sprite_folder = proj_path / 'shapes'
 mc_folder = proj_path / 'binaries'
 
-disk_path = 'sdp.'+img_fmt
+disk_path = distro_path / ('sdp.'+img_fmt)
 
 bas_files = [
-    {"name": "BYFNDR", "load": 0x800, "folder": bas_folder},
-    {"name": "FASTSHAPE", "load": 0x800, "folder": bas_folder},
-    {"name": "FSVIEWER", "load": 0x800, "folder": bas_folder},
-    {"name": "HELLO", "load": 0x800, "folder": bas_folder},
-    {"name": "UTIL", "load": 0x800, "folder": bas_folder},
-    {"name": "SDP", "load": 0x800, "folder": bas_folder},
-    {"name": "SHAPE", "load": 0x800, "folder": bas_folder},
-    {"name": "TEXT", "load": 0x800, "folder": bas_folder},
-    {"name": "VIEWER", "load": 0x800, "folder": bas_folder}
+    {"name": "BYFNDR", "folder": bas_folder},
+    {"name": "FASTSHAPE", "folder": bas_folder},
+    {"name": "FSVIEWER", "folder": bas_folder},
+    {"name": "HELLO", "folder": bas_folder},
+    {"name": "UTIL", "folder": bas_folder},
+    {"name": "SDP", "folder": bas_folder},
+    {"name": "SHAPE", "folder": bas_folder},
+    {"name": "TEXT", "folder": bas_folder},
+    {"name": "VIEWER", "folder": bas_folder}
 ]
 
-file_images = [
+fixed_images = [
     {"name": "D0", "folder": sprite_folder},
     {"name": "D1", "folder": sprite_folder},
     {"name": "D2", "folder": sprite_folder},
@@ -68,47 +57,42 @@ file_images = [
     {"name": "D6", "folder": sprite_folder},
     {"name": "FRAMEM", "folder": sprite_folder},
     {"name": "ROBOT", "folder": sprite_folder},
-    {"name": "ROBOT.FS", "folder": sprite_folder}
+    {"name": "ROBOT.FS", "folder": sprite_folder},
+    {"name": "DR", "folder": mc_folder},
+    {"name": "HS.INTRP", "folder": mc_folder},
+    {"name": "SDP.INTRP", "folder": mc_folder},
+    {"name": "SDP.INTRP.E", "folder": mc_folder},
+    {"name": "SI", "folder": mc_folder}
 ]
 
-bin_files = [
-    {"name": "DR#060300", "load": 0x300, "folder": mc_folder},
-    {"name": "HS.INTRP#064000", "load": 0x4000, "folder": mc_folder},
-    {"name": "SDP.INTRP#064b00", "load": 0x4b00, "folder": mc_folder},
-    {"name": "SDP.INTRP.E#064b00", "load": 0x4b00, "folder": mc_folder},
-    {"name": "SI#064000", "load": 0x4000, "folder": mc_folder}
-]
+all_file_images = "["
 
 # Create the bootable disk image
-
 if img_fmt=='woz':
     img_fmt = 'woz2'
 print('creating disk images')
-a2kit_beg(['mkdsk','-d',disk_path,'-o','dos33','-t',img_fmt,'-v','254','-b'])
+a2kit(['mkdsk','-d',disk_path,'-o','dos33','-t',img_fmt,'-v','254','-b'])
+a2kit(['put','-d',disk_path,'-t','meta'],a2kit(['get','-f',proj_path / 'scripts' / 'meta.json']))
 
-# Deploy BASIC programs
+# Build images of BASIC programs
+load_addr = 0x801
+max_end = 0x1E00 # leave 2 pages for variables
 for dict in bas_files:
     print('processing',dict['name'])
-    src = a2kit_beg(['get','-f',dict['folder']/(dict['name']+'.bas')])
-    addr0 = dict['load']
-    tok = a2kit_pipe(['tokenize','-t','atxt','-a',str(addr0+1)], src)
-    max_len = 0x2000 - addr0 - 1
-    if len(tok) > max_len:
+    src = a2kit(['get','-f',dict['folder']/(dict['name']+'.bas')])
+    tok = a2kit(['tokenize','-t','atxt','-a',str(load_addr)], src)
+    if load_addr + len(tok) > max_end:
         print('ERROR: program',dict['name'],'is too long')
         exit(1)
-    a2kit_end(['put','-t','atok','-f',dict['name'],'-d',disk_path], tok)
-    print('program length',len(tok))
+    all_file_images += a2kit(['pack','-t','atok','-f',dict['name'],"-o","dos33"], tok).decode('utf-8') + ","
 
-# Deploy machine code
-for dict in bin_files:
-    name = dict['name'].split('#')[0]
-    print('processing',name)
-    obj = a2kit_beg(['get','-f',dict['folder']/dict['name']])
-    a2kit_end(['put','-t','bin','-f',name,'-a',str(dict['load']),'-d',disk_path], obj)
-
-# Deploy shapes
-for dict in file_images:
+# Add fixed file images
+for dict in fixed_images:
     name = dict['name'] + '.json'
     print('processing',name)
-    obj = a2kit_beg(['get','-f',dict['folder']/name])
-    a2kit_end(['put','-t','any','-f',dict['name'],'-d',disk_path], obj)
+    all_file_images += a2kit(['get','-f',dict['folder']/name]).decode('utf-8') + ","
+
+all_file_images = all_file_images[:-1] + "]"
+
+# Write all file images at once
+a2kit(['mput','-d',disk_path], all_file_images.encode('utf-8'))

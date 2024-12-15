@@ -1,0 +1,23 @@
+{
+    "woz2": {
+        "info": {
+            "compatible_hardware": "7e00",
+            "required_ram": "3000"
+        },
+        "meta": {
+            "title": "SDP",
+            "subtitle": "Super Dungeon Plot",
+            "developer": "Daniel Gordon",
+            "copyright": "GPL 3.0 license",
+            "version": "",
+            "language": "English",
+            "requires_ram": "48K",
+            "requires_rom": "Applesoft",
+            "apple2_requires": "Color TV recommended",
+            "requires_machine": "2+|2e|2c|2e+|2gs|2c+",
+            "side": "",
+            "side_name": "",
+            "notes": "graphics package for game application"
+        }
+    }
+}
